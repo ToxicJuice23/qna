@@ -1,8 +1,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#define NL 0xa /*newline*/
+#include <string.h>
+#define NL ';' /*newline/seperator*/
 #define freef(x) if(x)free(x)
+#define KNRM  "\x1B[0m"
+#define KRED  "\x1B[31m"
+#define KGRN  "\x1B[32m"
+#define KYEL  "\x1B[33m"
+#define KBLU  "\x1B[34m"
+#define KMAG  "\x1B[35m"
+#define KCYN  "\x1B[36m"
+#define KWHT  "\x1B[37m"
+#define ANS_SEP '?' // ? will be used in answers.txt to seperate values, questions arent answers lol
 
 long getFileLength(FILE* fp) {
     long n;
@@ -142,6 +152,24 @@ int getQnA(char*** qp, char*** ap) {
     return -1;
 }
 
+int getSubAns(char* ans, char** subAns) {
+    int subI = 0;
+    char* tmp = ans;
+    int l = strlen(ans);
+    for (int ansI=0; ansI<l; ansI++) {
+        if (ans[ansI] == ANS_SEP) {
+            subAns[subI] = tmp;
+            ans[ansI] = 0;
+            subI++;
+            tmp = (ans + ansI+1);
+        }
+    }
+    // handle last case
+    subAns[subI] = tmp;
+    subI++;
+    return subI;
+}
+
 int main(int argc, char** argv) {
     char*** qp = malloc(sizeof(char**));
     char*** ap = malloc(sizeof(char**));
@@ -159,6 +187,12 @@ int main(int argc, char** argv) {
         char* ques = questions[i];
         char* ans = answers[i];
         // todo seperate answers with , and ask questions/input
+        fprintf(stdout, "%s%s\n", KCYN, ques);
+        char** subAns = malloc(sizeof(char*) * nQ);
+        int nSubAns = getSubAns(ans, subAns);
+        for (int i=0; i<nSubAns; i++) {
+            printf("\t%sAnswer #%d: %s\n", KGRN, i+1, subAns[i]);
+        }
     }
 
     free(answers); free(questions);
