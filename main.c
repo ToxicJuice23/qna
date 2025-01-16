@@ -5,7 +5,6 @@
 #include <ctype.h>
 #include <stdint.h>
 #include <time.h>
-#define NL ';' /*newline/seperator*/
 #define freef(x) if(x)free(x)
 #define KNRM  "\x1B[0m"
 #define KRED  "\x1B[31m"
@@ -15,7 +14,9 @@
 #define KMAG  "\x1B[35m"
 #define KCYN  "\x1B[36m"
 #define KWHT  "\x1B[37m"
-#define ANS_SEP '?' // ? will be used in answers.txt to seperate values, questions arent answers lol
+#define COL_SEP ',' // ? will be used in answers.txt to seperate values, questions arent answers lol
+#define ROW_SEP 0xa /*newline/seperator*/
+// csv
 
 long getFileLength(FILE* fp) {
     long n;
@@ -76,8 +77,8 @@ int getQnA(char*** qp, char*** ap) {
     // loops until the bigger length of the two
     long gFL = (ansFL > quesFL) ? ansFL : quesFL; // greatest file length
     for (long i=0; i < gFL; i++) {
-        if (i < ansFL && ansBuf[i] == NL) ansNL++;
-        if (i < quesFL && quesBuf[i] == NL) quesNL++;
+        if (i < ansFL && ansBuf[i] == ROW_SEP) ansNL++;
+        if (i < quesFL && quesBuf[i] == ROW_SEP) quesNL++;
     }
     
     if (ansNL != quesNL) {
@@ -109,14 +110,14 @@ int getQnA(char*** qp, char*** ap) {
                 fprintf(stderr, "Memory error\n");
                 goto safe_exit;
             }
-            if (i < ansFL && ansBuf[i] == NL) {
+            if (i < ansFL && ansBuf[i] == ROW_SEP) {
                 // reached new line in answers.txt
                 answers[ansIndex] = (ansBuf + tmp1); // tmp1 is the offset
                 ansBuf[i] = 0;
                 tmp1 = i+1;
                 ansIndex++;
             }
-            if (i < quesFL && quesBuf[i] == NL) {
+            if (i < quesFL && quesBuf[i] == ROW_SEP) {
                 questions[quesIndex] = (quesBuf + tmp2); // tmp2 is the offset
                 quesBuf[i] = 0;
                 tmp2 = i+1;
@@ -178,7 +179,7 @@ int getSubAns(char* ans, char** subAns) {
     int l = strlen(ans);
     // split string with ans_sep
     for (int ansI=0; ansI<l; ansI++) {
-        if (ans[ansI] == ANS_SEP) {
+        if (ans[ansI] == COL_SEP) {
             subAns[subI] = tmp;
             ans[ansI] = 0;
             subI++;
@@ -198,7 +199,7 @@ int main(void) {
     int nQ = getQnA(qp, ap);
 
     if (nQ < 0) {
-        fprintf(stderr, "%sgetQnA() failed%s", KRED, KNRM);
+        fprintf(stderr, "%sgetQnA() failed%s\n", KRED, KNRM);
         return 1;
     }
 
