@@ -2,6 +2,9 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <ctype.h>
+#include <stdint.h>
+#include <time.h>
 #define NL ';' /*newline/seperator*/
 #define freef(x) if(x)free(x)
 #define KNRM  "\x1B[0m"
@@ -152,10 +155,28 @@ int getQnA(char*** qp, char*** ap) {
     return -1;
 }
 
+
+// credit for this function goes to: https://stackoverflow.com/a/6127606/17196870
+void shuffle(int *array, size_t n)
+{
+    if (n > 1) 
+    {
+        size_t i;
+        for (i = 0; i < n - 1; i++) 
+        {
+          size_t j = i + rand() / (RAND_MAX / (n - i) + 1);
+          int t = array[j];
+          array[j] = array[i];
+          array[i] = t;
+        }
+    }
+}
+
 int getSubAns(char* ans, char** subAns) {
     int subI = 0;
     char* tmp = ans;
     int l = strlen(ans);
+    // split string with ans_sep
     for (int ansI=0; ansI<l; ansI++) {
         if (ans[ansI] == ANS_SEP) {
             subAns[subI] = tmp;
@@ -171,11 +192,13 @@ int getSubAns(char* ans, char** subAns) {
 }
 
 int main(int argc, char** argv) {
+    srand(time(0));
     char*** qp = malloc(sizeof(char**));
     char*** ap = malloc(sizeof(char**));
     int nQ = getQnA(qp, ap);
 
     if (nQ < 0) {
+        fprintf(stderr, "%sgetQnA() failed%s", KRED, KNRM);
         return 1;
     }
 
@@ -183,18 +206,107 @@ int main(int argc, char** argv) {
     char** answers = *ap;
     free(ap); free(qp); ap = 0; qp = 0;
 
+    unsigned short score = 0; // make sure no overflow happens though
+    char* in = malloc(200); // declared outside so no realloc for no reason
+    // loop through the questions (main loop)
     for (int i=0; i<nQ; i++) {
         char* ques = questions[i];
         char* ans = answers[i];
+
         // todo seperate answers with , and ask questions/input
         fprintf(stdout, "%s%s\n", KCYN, ques);
         char** subAns = malloc(sizeof(char*) * nQ);
         int nSubAns = getSubAns(ans, subAns);
+
+        char* correct = subAns[0]; // contains correct answer
+        int* randInd = malloc(sizeof(nSubAns)); // contains the corresponding indexes subAns[randInd[i]] to decode
+
+        // fill array and shuffle it
+        for (int i=0; i<nSubAns; i++) randInd[i] = i;
+        shuffle(randInd, nSubAns);
+
         for (int i=0; i<nSubAns; i++) {
-            printf("\t%sAnswer #%d: %s\n", KGRN, i+1, subAns[i]);
+            printf("\t%s%c: %s\n", KYEL, 'a'+i, subAns[randInd[i]]);
+        }
+        printf("\t%sYour answer: ", KCYN); // cyan fn
+
+        memset(in, 0, 200); // zero it out to avoid mem leaks
+        fgets(in, 200, stdin);
+        in[strlen(in) - 1] = 0; // remove \n
+    
+        if (in == NULL) {
+            fprintf(stderr, "%sError reading from stdin\n%s", KRED, KNRM);
+            exit(1);
+        }
+        
+        unsigned char success = 0; // bool (i know char is already unsiged, just making clear)
+        int index = 0;
+        while (!success) {
+            // delete and compare to abc, not the acc answer lol
+            if (strlen(in) > 1) {
+                invalid:
+                printf("%sInvalid input, please enter only [a,b,c...] or [1,2,3...]\n%s", KRED, KNRM);
+                continue;
+            }
+            char c = in[0];
+            c = (char)tolower(c);
+            if (!isalnum(c) || c == '0') {
+                goto invalid;
+            }
+
+            if (isalpha(c)) {
+                index = c - 'a';
+            } else {
+                index = c - '1';
+            }
+
+            if (index > nSubAns) {
+                printf("answer is out of range\nAcceptable range is [a-%c] or [1-%d]", 'a'+nSubAns-1, nSubAns);
+                goto invalid;
+            }
+            success = 1;
+        }
+        success = 0;
+        // zero is the index of the correct answer
+        // think of randInd as a function that gets the corresponding index for the shuffled one
+        if (randInd[index] == 0) {
+            // handle buffer overflow since were using uint16, unless a bug happens or 2^16 questions are available... XD
+            if (++score == 0) {
+                fprintf(stderr, "%sScore counter overflow detected. Shutting down...%s\n", KRED, KNRM);
+                exit(1);
+            }
+
+            printf("%sCorrect!\tscore +1\n\tCurrent score:%d/%d%s\n", KGRN, score, nQ, KNRM);
+        } else {
+            printf("%sIncorrect.\n\tCurrent score:%d/%d\n%s", KRED, score, nQ, KNRM);
+        }
+        
+        // no memory leaks!!
+        if (subAns != NULL) {
+            free(subAns);
+            subAns = NULL;
+        }
+        if (randInd != NULL) {
+            //free(randInd);
+            randInd = NULL;
         }
     }
-
-    free(answers); free(questions);
+    float grade = (float)score/(float)nQ;
+    grade *= 100.f;
+    printf("%sFINAL SCORE: %d/%d which is %.2f%%\n", KNRM, score, nQ, grade);
+    
+    printf("%s", KGRN);
+    if (grade > 95.f) {
+        printf("ACED IT!\n");
+    } else if (grade > 80.f) {
+        printf("Good Job!\n");
+    } else if (grade > 60.f) {
+        printf("%sYou should study a bit more..\n", KYEL);
+    } else if (grade > 40.f) {
+        printf("%sFailed. Go study.\n", KRED);
+    } else {
+        printf("%sYOU'RE COOKED BRO 😭😭😭\n", KRED);
+    }
+    printf("%s", KNRM);
     return 0;
 }
