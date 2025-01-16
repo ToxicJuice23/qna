@@ -191,7 +191,7 @@ int getSubAns(char* ans, char** subAns) {
     return subI;
 }
 
-int main(int argc, char** argv) {
+int main(void) {
     srand(time(0));
     char*** qp = malloc(sizeof(char**));
     char*** ap = malloc(sizeof(char**));
@@ -218,7 +218,6 @@ int main(int argc, char** argv) {
         char** subAns = malloc(sizeof(char*) * nQ);
         int nSubAns = getSubAns(ans, subAns);
 
-        char* correct = subAns[0]; // contains correct answer
         int* randInd = malloc(sizeof(nSubAns)); // contains the corresponding indexes subAns[randInd[i]] to decode
 
         // fill array and shuffle it
@@ -231,7 +230,10 @@ int main(int argc, char** argv) {
         printf("\t%sYour answer: ", KCYN); // cyan fn
 
         memset(in, 0, 200); // zero it out to avoid mem leaks
-        fgets(in, 200, stdin);
+        if (fgets(in, 200, stdin) == NULL) {
+            fprintf(stderr, "%sFailed to read from stdin.\n%s", KRED, KNRM);
+            exit(1);
+        }
         in[strlen(in) - 1] = 0; // remove \n
     
         if (in == NULL) {
