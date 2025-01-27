@@ -30,9 +30,47 @@ int getQnA(char*** qp, char*** ap) {
     FILE *ansF = NULL, *quesF = NULL;
     char *ansBuf = NULL, *quesBuf = NULL, **answers = NULL, **questions = NULL;
     long ansFL=0, quesFL=0;
+    
+    char* code;
+    while (1) {
+        printf("Enter your 6-character quiz code: ");
+        code = malloc(10);
+        char* res = fgets(code, 10, stdin); // +2 for nl
 
-    ansF = fopen("answers.txt", "r");
-    quesF = fopen("questions.txt", "r");
+        if (res == NULL) {
+            fprintf(stderr, "%sFailed to read code. Try again.%s\n", KRED, KNRM);
+            free(code);
+            code = NULL;
+            continue;
+        }
+
+        if (strlen(code) < 6) {
+            fprintf(stderr, "%sInvalid input length, Got: %ld\n%s", KRED, strlen(code), KNRM);
+            free(code);
+            code = NULL;
+            continue;
+        }
+        break;
+    }
+    if (fflush(stdin)) {
+        fprintf(stderr, "%sfflush() failed\n%s", KRED, KNRM);
+        exit(1);
+    }
+    printf("%s\n", code);
+    
+    if (1) {
+        code[strlen(code) - 1] = 0;
+        int len = strlen("web/qnas/123456/questions.txt0");
+        char* tmpstr = malloc(len);
+        memset(tmpstr, 0, len);
+        sprintf(tmpstr, "web/qnas/%s/answers.txt", code);
+        ansF = fopen(tmpstr, "r");
+        memset(tmpstr, 0, len);
+        sprintf(tmpstr, "web/qnas/%s/questions.txt", code); 
+        quesF = fopen(tmpstr, "r");
+        free(tmpstr);
+        tmpstr = NULL;
+    }
 
     // check if files were successfully opened
     if (ansF == NULL) {
@@ -59,7 +97,7 @@ int getQnA(char*** qp, char*** ap) {
 
     // if zero bytes or error, safe exit.
     if (na < 1 || nq < 1) {
-        fprintf(stderr, "Unable to read from files or File could be empty\nans_n: %d, ques_n: %d\n", na, nq);
+        fprintf(stderr, "%sUnable to read from files or File could be empty\nans_n: %d, ques_n: %d\n%s", KRED, na, nq, KNRM);
         goto safe_exit;
     }
     
@@ -82,7 +120,7 @@ int getQnA(char*** qp, char*** ap) {
     }
     
     if (ansNL != quesNL) {
-        fprintf(stderr, "Some questions might not have answers to them or vice-versa.\n");
+        fprintf(stderr, "%sSome questions might not have answers to them or vice-versa.\n%s", KRED, KNRM);
         goto safe_exit;
     }
 
