@@ -5,6 +5,8 @@
 #include <ctype.h>
 #include <stdint.h>
 #include <time.h>
+#include <dirent.h>
+#include <errno.h>
 #define freef(x) if(x)free(x)
 #define KNRM  "\x1B[0m"
 #define KRED  "\x1B[31m"
@@ -50,18 +52,23 @@ int getQnA(char*** qp, char*** ap) {
             code = NULL;
             continue;
         }
-        break;
-    }
-    if (fflush(stdin)) {
-        fprintf(stderr, "%sfflush() failed\n%s", KRED, KNRM);
-        exit(1);
-    }
-    printf("%s\n", code);
-    
-    if (1) {
+        
+        if (fflush(stdin)) {
+            fprintf(stderr, "%sfflush() failed\n%s", KRED, KNRM);
+            exit(1);
+        }
+        
         code[strlen(code) - 1] = 0;
         int len = strlen("web/qnas/123456/questions.txt0");
         char* tmpstr = malloc(len);
+        sprintf(tmpstr, "web/qnas/%s/", code);
+        DIR* dir = opendir(tmpstr);
+        if (dir) {
+            closedir(dir);
+        } else if (ENOENT == errno) {
+            fprintf(stderr, "%sThe code is not in database.\n%s", KRED, KNRM);
+            continue;
+        }
         memset(tmpstr, 0, len);
         sprintf(tmpstr, "web/qnas/%s/answers.txt", code);
         ansF = fopen(tmpstr, "r");
@@ -70,6 +77,7 @@ int getQnA(char*** qp, char*** ap) {
         quesF = fopen(tmpstr, "r");
         free(tmpstr);
         tmpstr = NULL;
+        break;
     }
 
     // check if files were successfully opened
