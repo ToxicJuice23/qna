@@ -28,40 +28,49 @@ long getFileLength(FILE* fp) {
     return n;
 }
 
-int getQnA(char*** qp, char*** ap) {
-    FILE *ansF = NULL, *quesF = NULL;
-    char *ansBuf = NULL, *quesBuf = NULL, **answers = NULL, **questions = NULL;
-    long ansFL=0, quesFL=0;
-    
-    char* code;
+int getCode(char** code) {
+    if (code == NULL) {
+        return 1;
+    }
+
     while (1) {
         printf("Enter your 6-character quiz code: ");
-        code = malloc(10);
-        char* res = fgets(code, 10, stdin); // +2 for nl
+        char* res = fgets(*code, 10, stdin); // +2 for nl
 
         if (res == NULL) {
             fprintf(stderr, "%sFailed to read code. Try again.%s\n", KRED, KNRM);
-            free(code);
-            code = NULL;
             continue;
         }
 
-        if (strlen(code) < 6) {
-            fprintf(stderr, "%sInvalid input length, Got: %ld\n%s", KRED, strlen(code), KNRM);
-            free(code);
-            code = NULL;
+        if (strlen(*code) < 6) {
+            fprintf(stderr, "%sInvalid input length, Got: %ld\n%s", KRED, strlen(*code), KNRM);
             continue;
         }
         
         if (fflush(stdin)) {
             fprintf(stderr, "%sfflush() failed\n%s", KRED, KNRM);
-            exit(1);
+            return 1;
         }
-        
+        break;
+    }
+    return 0;
+}
+
+int getQnA(char*** qp, char*** ap) {
+    FILE *ansF = NULL, *quesF = NULL;
+    char *ansBuf = NULL, *quesBuf = NULL, **answers = NULL, **questions = NULL;
+    long ansFL=0, quesFL=0;
+    
+    char* code = malloc(10);
+    while (1) {
+        int r = getCode(&code);
         code[strlen(code) - 1] = 0;
-        int len = strlen("web/qnas/123456/questions.txt0");
+        if (r)
+            exit(1);
+        
+        int len = strlen("qnas/123456/questions.txt0");
         char* tmpstr = malloc(len);
-        sprintf(tmpstr, "web/qnas/%s/", code);
+        sprintf(tmpstr, "qnas/%s/", code);
         DIR* dir = opendir(tmpstr);
         if (dir) {
             closedir(dir);
@@ -70,10 +79,10 @@ int getQnA(char*** qp, char*** ap) {
             continue;
         }
         memset(tmpstr, 0, len);
-        sprintf(tmpstr, "web/qnas/%s/answers.txt", code);
+        sprintf(tmpstr, "qnas/%s/answers.txt", code);
         ansF = fopen(tmpstr, "r");
         memset(tmpstr, 0, len);
-        sprintf(tmpstr, "web/qnas/%s/questions.txt", code); 
+        sprintf(tmpstr, "qnas/%s/questions.txt", code); 
         quesF = fopen(tmpstr, "r");
         free(tmpstr);
         tmpstr = NULL;

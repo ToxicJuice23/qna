@@ -1,0 +1,27 @@
+open user db
+socket
+listen
+accept
+get /:
+    send html
+    recv code
+    recv token
+    if token !valid:
+        logout user on frontend
+        redir to /login page
+    auth code
+    open file
+    shuffle ans
+    send html
+    send q:"";a[""];c:index
+post /:
+    recv body
+    get token
+    get code
+    get q's get a's
+    query db (token -> username, where username = $.)
+    does qna/code exist?
+    no: create
+    d = open(./qna/code)
+    d.create(ans.txt, ques.txt)
+    
